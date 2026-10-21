@@ -40,6 +40,12 @@ mediante ventanas emergentes (prompt/alert) y la consola
 -Función Principal: procesarReserva, que coordina el flujo iterativo de registro por 
  cada pasajero dentro de un grupo
 
+## Uso de Arreglos (Vectores)
+- **`pasajeros`**: Arreglo que almacena los nombres de los pasajeros predefinidos en la lista.
+- **`maletas`**: Arreglo que contiene el peso del equipaje correspondiente a cada pasajero.
+- **`costos_pasajes`**: Arreglo dinámico (`[]`) donde se van almacenando los costos calculados de cada pasaje procesado mediante el método `.push()`.
+- **Recorrido y Listado**: Se utiliza el método `.entries()` junto con un ciclo `for...of` para asociar el índice, el nombre del pasajero, el peso de su maleta y su costo final al imprimir el listado completo por consola al finalizar la ejecución.
+
 ## Ambito de las varibles (Scope)
 -Variables Globales (let y const): Declaradas al inicio del script, como asientosDisponibles, sistemaActivo, 
  PRECIO_BASE, RECARGO_EXCESO y LIMITE_EQUIPAJE_KG. Mantienen el estado general del sistema y las 
@@ -63,6 +69,3 @@ mediante ventanas emergentes (prompt/alert) y la consola
 Abrir `index.html` en un navegador (con `main.js` enlazado) y seguir las
 indicaciones que aparecen en pantalla. Los registros de cada pasaje se
 muestran también en la consola del navegador.
-
-
-
