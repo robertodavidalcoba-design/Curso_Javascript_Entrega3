@@ -2,12 +2,19 @@
 // SIMULADOR DE RESERVA DE VUELOS 
 // ============================================================
 
-// --- Variables y constantes globales ---
+// --- Variables, constantes y arreglos globales ---
 let asientosDisponibles = 4;
 let sistemaActivo = true;
+let indicePasajeroActual = 0; // Guardará la posición del próximo pasajero a procesar
+
 const PRECIO_BASE = 150.0;
 const RECARGO_EXCESO = 50.0;
 const LIMITE_EQUIPAJE_KG = 23.0;
+
+// Arreglos de datos predefinidos
+const pasajeros = ["roberto carabajal", "cecilia arias", "pichon lunes", "petaco joel"];
+const maletas = [20, 40, 50, 20];
+const costos_pasajes = []; // Arreglo donde se guardarán todos los costos calculados
 
 // ============================================================
 // FUNCIONES FLECHA 
@@ -15,7 +22,8 @@ const LIMITE_EQUIPAJE_KG = 23.0;
 
 const excedePeso = (peso, limite) => peso > limite;
 
-const cantidadValida = (cantidad, disponibles) => Number.isInteger(cantidad) && cantidad > 0 && cantidad <= disponibles;
+const cantidadValida = (cantidad, disponibles, pendientes) => 
+    Number.isInteger(cantidad) && cantidad > 0 && cantidad <= disponibles && cantidad <= pendientes;
 
 // ============================================================
 // FUNCIONES DE ENTRADA DE DATOS
@@ -31,34 +39,15 @@ function solicitarCodigoVuelo(mensaje) {
 
 function solicitarCantidadPasajeros(codigoVuelo, disponibles) {
     let texto = prompt(
-        `Vuelo ${codigoVuelo} (Asientos disponibles: ${disponibles})\n¿Cuántos pasajeros desea registrar en este grupo?`
+        `Vuelo ${codigoVuelo} (Asientos disponibles: ${disponibles})\n¿Cuántos pasajes desea procesar?`
     );
     return Number(texto);
-}
-
-// Pide el nombre del pasajero y lo devuelve como texto (string)
-function solicitarNombrePasajero(numero, total) {
-    let nombre = prompt(`Pasajero ${numero} de ${total}:\nIngrese el nombre y apellido:`);
-    if (nombre === null || nombre.trim() === "") {
-        return `Pasajero ${numero}`;
-    }
-    return nombre.trim();
-}
-
-// Pide el peso del equipaje y lo devuelve como número
-function solicitarPesoPasajero(nombre) {
-    let peso = Number(prompt(`Ingrese el peso del equipaje (en kg) para ${nombre}:`));
-    while (isNaN(peso) || peso < 0) {
-        peso = Number(prompt(`Peso inválido. Ingrese nuevamente el peso (en kg) para ${nombre}:`));
-    }
-    return peso;
 }
 
 // ============================================================
 // FUNCIONES DE PROCESAMIENTO
 // ============================================================
 
-// Calcula únicamente el recargo
 function calcularRecargo(pesoMaleta, recargoExceso) {
     if (excedePeso(pesoMaleta, LIMITE_EQUIPAJE_KG)) {
         return recargoExceso;
@@ -66,13 +55,12 @@ function calcularRecargo(pesoMaleta, recargoExceso) {
     return 0;
 }
 
-// Calcula el costo final sumando la base y el recargo
 function calcularCostoFinal(precioBase, recargo) {
     return precioBase + recargo;
 }
 
 // ============================================================
-// FUNCIONES MOSTRAR POR PANTALLA
+// FUNCIONES MOSTRAR POR PANTALLA Y CONSOLA
 // ============================================================
 
 function mostrarPasajero(nombre, peso, recargo, costo, precioBase) {
@@ -91,37 +79,60 @@ function mostrarPasajero(nombre, peso, recargo, costo, precioBase) {
 
 function mostrarResumen(codigoVuelo, confirmados, total) {
     alert(`--- RESUMEN DE LA RESERVA ---\nVuelo: ${codigoVuelo}\nPasajeros confirmados: ${confirmados}\nMonto total a pagar: $${total}`);
-    console.log(`Reserva vuelo ${codigoVuelo}: ${confirmados} pasajero(s) - Total $${total}`);
+}
+
+// Función que muestra por consola el listado completo final
+function imprimirListadoFinalConsola() {
+    console.log("\n============================================================");
+    console.log("         LISTADO FINAL DE PASAJEROS PROCESADOS              ");
+    console.log("============================================================");
+
+    if (costos_pasajes.length === 0) {
+        console.log("No se procesó ninguna reserva.");
+    } else {
+        // Se usa for...of junto con .entries() para obtener el índice y el costo
+        // costos_pasajes.entries() devuelve pares de la forma [índice, valor] por ejemplo: [0, 150], [1, 200]
+        // Con la desestructuración const [i, costo] of ..., la variable i toma la posición numérica y costo toma el elemento del arreglo de costos, 
+        // manteniendo la coincidencia exacta de los datos con pasajeros[i] y maletas[i]
+        for (const [i, costo] of costos_pasajes.entries()) {
+            console.log(`${i + 1}. Pasajero: ${pasajeros[i]} | Maleta: ${maletas[i]} kg | Costo Pasaje: $${costo}`);
+        }
+    }
+    console.log("============================================================\n");
 }
 
 // ============================================================
-// FUNCIÓN PRINCIPAL 
+// FUNCIÓN PRINCIPAL DE PROCESAMIENTO
 // ============================================================
 
 function procesarReserva(codigoVuelo, cantidad, asientos, precioBase) {
     let totalReserva = 0;
     let confirmados = 0;
 
-    for (let i = 1; i <= cantidad; i++) {
-        if (asientos > 0) {
-            // Usamos funciones separadas para pedir el nombre y el peso de forma independiente
-            let nombre = solicitarNombrePasajero(i, cantidad);
-            let peso = solicitarPesoPasajero(nombre);
+    const limite = indicePasajeroActual + cantidad;
 
-            // Calculamos recargo y costo usando variables simples
+    for (let i = indicePasajeroActual; i < limite; i++) {
+        if (asientos > 0) {
+            let nombre = pasajeros[i];
+            let peso = maletas[i];
+
             let recargo = calcularRecargo(peso, RECARGO_EXCESO);
             let costo = calcularCostoFinal(precioBase, recargo);
+
+            costos_pasajes.push(costo);
 
             mostrarPasajero(nombre, peso, recargo, costo, precioBase);
 
             totalReserva += costo;
             asientos--;
             confirmados++;
+            
+            indicePasajeroActual++; 
         }
     }
 
     mostrarResumen(codigoVuelo, confirmados, totalReserva);
-    return confirmados; // Devolvemos solo un número en lugar de un objeto
+    return confirmados;
 }
 
 // ============================================================
@@ -130,6 +141,13 @@ function procesarReserva(codigoVuelo, cantidad, asientos, precioBase) {
 alert("=== SISTEMA INTERACTIVO DE RESERVA DE VUELOS ===");
 
 while (sistemaActivo) {
+    // Si ya procesamos a todos los pasajeros de la lista
+    if (indicePasajeroActual >= pasajeros.length) {
+        alert("Se han procesado todos los pasajeros registrados en la lista.");
+        sistemaActivo = false;
+        break;
+    }
+
     const codigoVuelo = solicitarCodigoVuelo(
         "Ingrese el código del vuelo (ej: AR1400) o escriba 'salir' para cerrar el sistema:"
     );
@@ -142,13 +160,16 @@ while (sistemaActivo) {
         sistemaActivo = false;
     } else {
         const cantidad = solicitarCantidadPasajeros(codigoVuelo, asientosDisponibles);
+        const pasajerosPendientes = pasajeros.length - indicePasajeroActual;
 
-        if (cantidadValida(cantidad, asientosDisponibles)) {
-            // procesarReserva ahora devuelve directamente el número de confirmados
+        if (cantidadValida(cantidad, asientosDisponibles, pasajerosPendientes)) {
             const confirmadosProcesados = procesarReserva(codigoVuelo, cantidad, asientosDisponibles, PRECIO_BASE);
             asientosDisponibles -= confirmadosProcesados;
         } else {
-            alert(`[ERROR] Cantidad inválida o sin cupo suficiente.\nAsientos disponibles: ${asientosDisponibles}`);
+            alert(`[ERROR] Cantidad inválida.\nPasajeros restantes en lista: ${pasajerosPendientes}\nAsientos disponibles: ${asientosDisponibles}`);
         }
     }
 }
+
+// Imprime el listado final por consola al terminar la ejecución del programa
+imprimirListadoFinalConsola();
