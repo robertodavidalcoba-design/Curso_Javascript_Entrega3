@@ -10,11 +10,31 @@ const precioBase = 150.0;
 const recargoExceso = 50.0;
 const LimiteEquipaje = 23.0;
 
-//Iniciliazar listas
-const listaPasajeros=["DAVID","LUIS","CECILIA","JUAN"];
-const listaPesoEquipajes=[20,20,30,30];
-const listaCostoPasajes=[150,200,200,200];
+//Iniciliazar lista
+const listaPasajeros=[];
 
+class Pasajero {
+    static id=0
+    constructor(nombre, pesoEquipaje, recargoPasaje, costoPasaje) {
+        this.id =++ Pasajero.id;
+        this.nombre = nombre;
+        this.pesoEquipaje = pesoEquipaje;
+        this.recargoPasaje = recargoPasaje;
+        this.costoPasaje = costoPasaje;
+        this.descuentoPasaje=0;
+        this.descuento = 0;              
+    }
+    
+    aplicarDescuento(porcentaje) {
+        this.descuento = porcentaje;
+        this.recalcular();
+    }
+
+    recalcular() {
+        this.descuentoPasaje= this.costoPasaje * (this.descuento / 100);
+        this.costoPasaje = this.costoPasaje - this.descuentoPasaje;
+    }
+}
 const excedePeso = (peso, limite) => peso > limite;
 
 function cantidadValida(cantidad, disponibles) {
@@ -45,22 +65,38 @@ function solicitarCantidadPasajeros(codigoVuelo, disponibles) {
     return Number(texto);
 }
 
-// Pide el peso del equipaje y lo devuelve como número
-function solicitarPesoPasajero() {
-    let peso = Number(prompt("Ingrese el peso del equipaje (en kg):"));
-    while (isNaN(peso) || peso < 0) {
-        peso = Number(prompt("Peso inválido. Ingrese nuevamente el peso (en kg)"));
-    }
-    return peso;
-}
-
-// Pide el nombre del pasajero y lo devuelve como texto (string)
 function solicitarNombrePasajero() {
-    let nombre = prompt("Ingrese el nombre y apellido:");
+    let solicitarNombre = prompt("Ingrese el nombre y apellido:");
+    let nombre=solicitarNombre.trim().toUpperCase();
     while (nombre === null || nombre.trim() === "") {
         nombre = prompt('Nombre inválido. Ingrese nuevamente');
     }
-    return nombre.trim().toUpperCase();
+    return nombre;
+}
+
+// Pide el nombre del pasajero y lo devuelve como texto (string)
+const solicitarDatosPasajero = () => {
+    let solicitarNombre = prompt("Ingrese el nombre y apellido:");
+    let nombre= solicitarNombre.trim().toUpperCase();
+    while (nombre === null || nombre.trim() === "") {
+        solicitarNombre = prompt('Nombre inválido. Ingrese nuevamente');
+        nombre= solicitarNombre.trim().toUpperCase();
+    }
+    let entradaPesoEquipaje=prompt("Ingrese el peso del equipaje:");
+    let pesoEquipaje=Number(entradaPesoEquipaje);
+    while (isNaN(pesoEquipaje) || pesoEquipaje <= 0) {
+        entradaPesoEquipaje = prompt("Peso inválido. Ingrese un número mayor a 0:");
+        pesoEquipaje = Number(entradaPesoEquipaje);
+    }
+    let recargoPasaje = calcularRecargo(pesoEquipaje, recargoExceso);
+    let costoPasaje= recargoPasaje + precioBase;
+    return {
+        nombre: nombre,
+        pesoEquipaje: pesoEquipaje,
+        recargoPasaje: recargoPasaje,
+        costoPasaje: costoPasaje,
+    };
+  
 }
 
 
@@ -70,11 +106,6 @@ function calcularRecargo(pesoMaleta, recargoExceso) {
     }
     return 0;
 }
-
-function calcularCostoFinal(precioBase, recargo) {
-    return precioBase + recargo;
-}
-
 
 function mostrarPasajero(nombre, peso, recargo, costo, precioBase) {
     if (recargo > 0) {
@@ -96,9 +127,6 @@ function mostrarResumen(codigoVuelo, confirmados, total) {
 }
 
 
-
-
-
 // Opcion 1 - Procesar las reservas de asientos
 
 function procesarReserva() {
@@ -116,18 +144,11 @@ function procesarReserva() {
                 if (cantidadValida(cantidad, asientosDisponibles)) {
                     for (let i = 0; i < cantidad; i++) {
                         if (asientosDisponibles > 0) {
-                            let nombre = solicitarNombrePasajero();
-                            let peso=solicitarPesoPasajero();
-                            let recargo = calcularRecargo(peso, recargoExceso);
-                            let costo = calcularCostoFinal(precioBase, recargo);
-                    
-                            listaPasajeros.push(nombre.toUpperCase());
-                            listaPesoEquipajes.push(peso);
-                            listaCostoPasajes.push(costo);
-
-                            mostrarPasajero(nombre, peso, recargo, costo, precioBase);
-
-                            totalReserva += costo;
+                            const datos = solicitarDatosPasajero();
+                            const pasajero1 = new Pasajero(datos.nombre, datos.pesoEquipaje, datos.recargoPasaje,datos.costoPasaje);
+                            listaPasajeros.push(pasajero1);
+                            mostrarPasajero(datos.nombre, datos.pesoEquipaje, datos.recargoPasaje, datos.costoPasaje, precioBase);
+                            totalReserva += datos.costoPasaje;
                             asientosDisponibles--;
                             confirmados++;
                         }else{
@@ -154,12 +175,23 @@ function procesarReserva() {
 function buscarPasajero() {
     let nombre = solicitarNombrePasajero();
 
-    const posicion = listaPasajeros.indexOf(nombre.toUpperCase());
+    let posicion = -1;
+    let contador = 0;
+
+    // Recorre el array uno por uno comparando el nombre
+    for (const pasajero of listaPasajeros) {
+        if (pasajero.nombre === nombre) {
+            posicion = contador;
+        }
+        contador++;
+    }
 
     if (posicion !== -1) {
-        console.log("El pasajero está en lista, en la posición ", posicion);
+        console.log("El pasajero está en lista, en la posición", posicion);
+        alert("El pasajero " + nombre + " está en lista, en la posición " + posicion);
     } else {
         console.log("El pasajero no está en lista");
+        alert("El pasajero no está en lista");
     }
     return posicion;
 }
@@ -173,7 +205,7 @@ function imprimirListadoFinalConsola() {
         console.log("No se procesó ninguna reserva.");
     } else {
         for (const pasajero of listaPasajeros) {
-            console.log("Pasajero:" + pasajero);
+            console.log("Pasajero:" + pasajero.nombre + " Peso Equipaje:"+ pasajero.pesoEquipaje + " Costo del pasaje:" + pasajero.costoPasaje);
         }
         console.log("Total: " , listaPasajeros.length ," pasajeros");
     }
@@ -184,21 +216,13 @@ function imprimirListadoFinalConsola() {
 function borrarPasajeros(posicion) {
     if (listaPasajeros.length===8){
         const pasajero1 = listaPasajeros.pop();
-        const pesoEquipaje1 = listaPesoEquipajes.pop();
-        const costoPasaje1 = listaCostoPasajes.pop();
-        console.log("Se ha eliminado el elemento: ", pasajero1);
+        console.log("Se ha eliminado al pasajero: ", pasajero1.nombre);
         const pasajero2 = listaPasajeros.pop(); 
-        const pesoEquipaje2 = listaPesoEquipajes.pop();
-        const costoPasaje2 = listaCostoPasajes.pop();
-        console.log("Se ha eliminado el elemento: ", pasajero2);
+        console.log("Se ha eliminado al pasajero: ", pasajero2.nombre);
         const pasajero3 = listaPasajeros.pop(); 
-        const pesoEquipaje3 = listaPesoEquipajes.pop();
-        const costoPasaje3 = listaCostoPasajes.pop();
-        console.log("Se ha eliminado el elemento: ", pasajero3);
+        console.log("Se ha eliminado al pasajero: ", pasajero3.nombre);
         const pasajero4 = listaPasajeros.pop(); 
-        const pesoEquipaje4 = listaPesoEquipajes.pop();
-        const costoPasaje4 = listaCostoPasajes.pop();
-        console.log("Se ha eliminado el elemento: ", pasajero4);
+        console.log("Se ha eliminado al pasajero: ", pasajero4.nombre);
         asientosDisponibles+=asientosDisponibles+4;
     } else{
         alert("Todavia existen asientos disponibles, ir a la opcion 1 del menu");
@@ -208,25 +232,75 @@ function borrarPasajeros(posicion) {
 
 // Opcion 5 - Modificar los datos de un pasajero de la lista
 function modificarDatosPasajero(posicion) {
-    if (posicion>0){
-        console.log("El pasajero es=" + listaPasajeros[posicion]);
-       
-        let nombre = solicitarNombrePasajero();
-        let peso=solicitarPesoPasajero();
-        let recargo = calcularRecargo(peso, recargoExceso);
-        let costo = calcularCostoFinal(precioBase, recargo);
+    if (posicion >= 0 && posicion < listaPasajeros.length) {
+        const pasajero = listaPasajeros[posicion];
+        alert("El pasajero a modificar es: " + pasajero.nombre);
 
-        listaPasajeros.splice(posicion, 1, nombre); 
-        listaPesoEquipajes.splice(posicion,1,peso);
-        listaCostoPasajes.splice(posicion,1,costo);
-        console.log("--- Registro de Pasaje ---");
-        console.log("Nombre del pasajero:", listaPasajeros[posicion]);
-        console.log("Peso de equipaje:", listaPesoEquipajes[posicion], " kg");
-        console.log("Precio del pasaje: $", listaCostoPasajes[posicion]);
+        const datos = solicitarDatosPasajero();
+        pasajero.nombre = datos.nombre;
+        pasajero.pesoEquipaje = datos.pesoEquipaje;
+        pasajero.recargoPasaje = datos.recargoPasaje;
+        pasajero.costoPasaje = datos.costoPasaje;
+
+        console.log("--- Registro de Pasajero Modificado ---");
+        console.log("Nombre del pasajero:", pasajero.nombre);
+        console.log("Peso de equipaje:", pasajero.pesoEquipaje, "kg");
+        console.log("Recargo por peso maleta: $", pasajero.recargoPasaje);
+        console.log("Precio del pasaje: $", pasajero.costoPasaje);
+        alert("Datos del pasajero modificados correctamente");
     } else {
         console.log("El pasajero no está en lista");
+        alert("No se puede modificar: el pasajero no está en lista");
     }
     return posicion;
+}
+
+// Opcion 6 - Aplicar un descuento en el pasaje a un pasajero de la lista
+function aplicarDescuentoPasajero(posicion) {
+    if (posicion >= 0 && posicion < listaPasajeros.length) {
+        const seleccionPasajero = listaPasajeros[posicion];
+        alert("El pasajero a aplicar descuento es: " + seleccionPasajero.nombre);
+
+        let entradaPorcentaje = prompt("Ingrese porcentaje de descuento a aplicar (1 a 100):");
+        let porcentaje = Number(entradaPorcentaje);
+
+        while (isNaN(porcentaje) || porcentaje <= 0 || porcentaje > 100) {
+            entradaPorcentaje = prompt("Error. Ingrese un valor entre 1 y 100:");
+            porcentaje = Number(entradaPorcentaje);
+        }
+
+        seleccionPasajero.aplicarDescuento(porcentaje);
+
+        console.log("--- Registro de Pasajero con Descuento ---");
+        console.log("Nombre del pasajero:", seleccionPasajero.nombre);
+        console.log("Peso de equipaje:", seleccionPasajero.pesoEquipaje, "kg");
+        console.log("Recargo por peso maleta: $", seleccionPasajero.recargoPasaje);
+        console.log("Descuento aplicado (" + porcentaje + "%): -$", seleccionPasajero.descuentoPasaje);
+        console.log("Precio final del pasaje: $", seleccionPasajero.costoPasaje);
+
+        alert("Descuento aplicado correctamente a " + seleccionPasajero.nombre);
+    } else {
+        console.log("El pasajero no está en lista");
+        alert("No se puede aplicar descuento: el pasajero no está en lista");
+    }
+    return posicion;
+}
+
+function inicializarListaObjetos(){
+    let texto="";
+    const pasajero1 = new Pasajero("DAVID",20,0,150);
+    listaPasajeros.push(pasajero1);
+    const pasajero2 = new Pasajero("JUAN",25,50,200);
+    listaPasajeros.push(pasajero2);
+    const pasajero3 = new Pasajero("CECILIA",30,50,200);
+    listaPasajeros.push(pasajero3);
+    const pasajero4 = new Pasajero("MILAGROS",20,0,150);
+    listaPasajeros.push(pasajero4);
+    for (const pasajero of listaPasajeros) {
+        texto += "\nNombre: " + pasajero.nombre + " | Equipaje: " + pasajero.pesoEquipaje + " kg" + " | Costo: $" + pasajero.costoPasaje;
+    }
+
+    alert(texto);
 }
 
 
@@ -237,8 +311,10 @@ alert("=== SISTEMA INTERACTIVO DE RESERVA DE VUELOS ===");
 
 let opcion = "";
 let pos=-1;
+inicializarListaObjetos();
+alert("Se procedio a realizar la instanciacion de 4 objetos");
 asientosDisponibles= 8 - listaPasajeros.length;
-while (opcion !== "6") {
+while (opcion !== "7") {
   opcion = prompt(
     "MENÚ DE VUELOS\n\n" +
     "1 - Procesar Registrar pasajes\n" +
@@ -246,7 +322,8 @@ while (opcion !== "6") {
     "3 - Impresion de pasajeros\n" +
     "4 - Eliminar los pasajeros ingresados\n" +
     "5 - Modificar datos de un pasajero\n" +
-    "6 - Fin\n\n" +
+    "6 - Aplicar descuento a un pasajero\n" +
+    "7 - Fin\n\n" +
     "Seleccione una opción:"
   );
 
@@ -273,8 +350,13 @@ while (opcion !== "6") {
         alert("Modificar datos de un pasajero");
         pos=buscarPasajero();
         modificarDatosPasajero(pos);
-        break;    
+        break;
     case "6":
+        alert("Aplicar un descuento a un pasajero");
+        pos=buscarPasajero();
+        aplicarDescuentoPasajero(pos);
+        break;        
+    case "7":
         alert("Fin del programa");
         break;    
     default:
