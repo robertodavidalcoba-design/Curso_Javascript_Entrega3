@@ -8,7 +8,7 @@ let sistemaActivo = true;
 
 const precioBase = 150.0;
 const recargoExceso = 50.0;
-const LimiteEquipaje = 23.0;
+const limiteEquipaje = 23.0;
 
 //Iniciliazar lista
 const listaPasajeros=[];
@@ -74,6 +74,14 @@ function solicitarNombrePasajero() {
     return nombre;
 }
 
+function calcularRecargo(pesoMaleta) {
+    if (excedePeso(pesoMaleta, limiteEquipaje)) {
+        return recargoExceso;
+    }
+    return 0;
+}
+
+
 // Pide el nombre del pasajero y lo devuelve como texto (string)
 const solicitarDatosPasajero = () => {
     let solicitarNombre = prompt("Ingrese el nombre y apellido:");
@@ -88,7 +96,7 @@ const solicitarDatosPasajero = () => {
         entradaPesoEquipaje = prompt("Peso inválido. Ingrese un número mayor a 0:");
         pesoEquipaje = Number(entradaPesoEquipaje);
     }
-    let recargoPasaje = calcularRecargo(pesoEquipaje, recargoExceso);
+    let recargoPasaje = calcularRecargo(pesoEquipaje);
     let costoPasaje= recargoPasaje + precioBase;
     return {
         nombre: nombre,
@@ -100,26 +108,19 @@ const solicitarDatosPasajero = () => {
 }
 
 
-function calcularRecargo(pesoMaleta, recargoExceso) {
-    if (excedePeso(pesoMaleta, LimiteEquipaje)) {
-        return recargoExceso;
-    }
-    return 0;
-}
-
-function mostrarPasajero(nombre, peso, recargo, costo, precioBase) {
-    if (recargo > 0) {
-        alert("Pasajero: " + nombre +"\nEquipaje: " + peso + " kg (Supera los " + LimiteEquipaje + " kg)" +  "\nCosto Boleto: $" + precioBase +
-              "\nRecargo: $" + recargo + "\nTotal: $" + costo);
+function mostrarPasajero(newPasajero) {
+    if (newPasajero.recargoPasaje > 0) {
+        alert("Pasajero: " + newPasajero.nombre +"\nEquipaje: " + newPasajero.pesoEquipaje + " kg (Supera los " + limiteEquipaje + " kg)" +  "\nCosto Boleto: $" + precioBase +
+              "\nRecargo: $" + newPasajero.recargoPasaje + "\nTotal: $" + newPasajero.costoPasaje);
     } else {
-        alert("Pasajero: " + nombre + "\nEquipaje: " + peso + " kg (Correcto)" + "\nCosto Boleto: $" + precioBase);
+        alert("Pasajero: " + newPasajero.nombre + "\nEquipaje: " + newPasajero.pesoEquipaje + " kg (Correcto)" + "\nCosto Boleto: $" + precioBase);
     }
 
     console.log("--- Registro de Pasaje ---");
-    console.log("Nombre del pasajero:", nombre);
-    console.log("Peso de equipaje:", peso, "kg");
-    console.log("Recargo por peso maleta: $", recargo);
-    console.log("Precio del pasaje: $", costo);
+    console.log("Nombre del pasajero:", newPasajero.nombre);
+    console.log("Peso de equipaje Kg:", newPasajero.pesoEquipaje);
+    console.log("Recargo por peso maleta: $", newPasajero.recargoPasaje);
+    console.log("Precio del pasaje: $", newPasajero.costoPasaje);
 }
 
 function mostrarResumen(codigoVuelo, confirmados, total) {
@@ -128,35 +129,36 @@ function mostrarResumen(codigoVuelo, confirmados, total) {
 
 
 // Opcion 1 - Procesar las reservas de asientos
-
 function procesarReserva() {
-    let totalReserva = 0;
-    let confirmados = 0;
-    let asignados=listaPasajeros.length;
-    
     while (sistemaActivo) {
         if (asientosDisponibles > 0) {
-            const codigoVuelo = solicitarCodigoVuelo(
-            "Ingrese el código del vuelo (ej: AR1400) o escriba 'salir' para cerrar el sistema:"
-            );
+            const codigoVuelo = solicitarCodigoVuelo("Ingrese el código del vuelo (ej: AR1400) o escriba 'salir' para cerrar el sistema:");
             if (codigoVuelo !== "SALIR") {
                 const cantidad = solicitarCantidadPasajeros(codigoVuelo, asientosDisponibles);
                 if (cantidadValida(cantidad, asientosDisponibles)) {
-                    for (let i = 0; i < cantidad; i++) {
-                        if (asientosDisponibles > 0) {
-                            const datos = solicitarDatosPasajero();
-                            const pasajero1 = new Pasajero(datos.nombre, datos.pesoEquipaje, datos.recargoPasaje,datos.costoPasaje);
-                            listaPasajeros.push(pasajero1);
-                            mostrarPasajero(datos.nombre, datos.pesoEquipaje, datos.recargoPasaje, datos.costoPasaje, precioBase);
+                    let i = 0;
+                    let totalReserva=0;
+                    while (i < cantidad) {
+                        const datos = solicitarDatosPasajero();
+                        const yaExiste = listaPasajeros.some((p) => p.nombre === datos.nombre);
+                        if (yaExiste) {
+                            alert("Aviso: el pasajero " + datos.nombre + " ya tiene registrado un pasaje. Ingrese otro pasajero.");
+                        } else {
+                            const nuevoPasajero = new Pasajero(
+                                datos.nombre,
+                                datos.pesoEquipaje,
+                                datos.recargoPasaje,
+                                datos.costoPasaje
+                            );
+                            listaPasajeros.push(nuevoPasajero);
                             totalReserva += datos.costoPasaje;
-                            asientosDisponibles--;
-                            confirmados++;
-                        }else{
-                            alert("SIN CUPO, No quedan asientos disponibles.");
-                            sistemaActivo = false;
+                            mostrarPasajero(nuevoPasajero);
+                            i++; 
                         }
-                    } 
-                    mostrarResumen(codigoVuelo, confirmados, totalReserva)   
+                    }
+                    const confirmados = i;
+                    asientosDisponibles -= confirmados;
+                    mostrarResumen(codigoVuelo, confirmados, totalReserva);
                 } else {
                     alert("ERROR, Cantidad inválida.\nAsientos disponibles: " + asientosDisponibles);
                 }
@@ -164,8 +166,8 @@ function procesarReserva() {
                 sistemaActivo = false;
                 alert("Cerrando sesión del sistema de reservas. ¡Chau!");
             }
-        }else{
-            sistemaActivo=false;
+        } else {
+            sistemaActivo = false;
             alert("Cerrando sesión del sistema de reservas. No tenemos asientos disponibles");
         }
     }
@@ -175,76 +177,66 @@ function procesarReserva() {
 function buscarPasajero() {
     let nombre = solicitarNombrePasajero();
 
-    let posicion = -1;
-    let contador = 0;
+    // .find() devuelve el objeto Pasajero encontrado (o undefined si no está)
+    const pasajeroBuscado = listaPasajeros.find((pasajero) => pasajero.nombre === nombre);
 
-    // Recorre el array uno por uno comparando el nombre
-    for (const pasajero of listaPasajeros) {
-        if (pasajero.nombre === nombre) {
-            posicion = contador;
-        }
-        contador++;
-    }
-
-    if (posicion !== -1) {
+    if (pasajeroBuscado) {
+        const posicion = listaPasajeros.indexOf(pasajeroBuscado);
         console.log("El pasajero está en lista, en la posición", posicion);
-        alert("El pasajero " + nombre + " está en lista, en la posición " + posicion);
+        alert("El pasajero " + pasajeroBuscado.nombre + " está en lista, en la posición " + posicion);
     } else {
         console.log("El pasajero no está en lista");
         alert("El pasajero no está en lista");
     }
-    return posicion;
+
+    return pasajeroBuscado;
 }
 
 // Opcion 3 - Imprimir listado de pasajeros
 function imprimirListadoFinalConsola() {
     console.log("         LISTADO FINAL DE PASAJEROS PROCESADOS              ");
- 
 
     if (listaPasajeros.length === 0) {
         console.log("No se procesó ninguna reserva.");
     } else {
-        for (const pasajero of listaPasajeros) {
-            console.log("Pasajero:" + pasajero.nombre + " Peso Equipaje:"+ pasajero.pesoEquipaje + " Costo del pasaje:" + pasajero.costoPasaje);
-        }
-        console.log("Total: " , listaPasajeros.length ," pasajeros");
+        listaPasajeros.forEach((pasajero) => console.log("Nombre=",pasajero.nombre," Costo del Pasaje=$",pasajero.costoPasaje));
+        console.log("Total: ", listaPasajeros.length, " pasajeros");
     }
     console.log("============================================================\n");
 }
 
-// Opcion 4 - Eliminar los pasajeros que ingresaron por el sistema no incluyen los inicializados
-function borrarPasajeros(posicion) {
-    if (listaPasajeros.length===8){
-        const pasajero1 = listaPasajeros.pop();
-        console.log("Se ha eliminado al pasajero: ", pasajero1.nombre);
-        const pasajero2 = listaPasajeros.pop(); 
-        console.log("Se ha eliminado al pasajero: ", pasajero2.nombre);
-        const pasajero3 = listaPasajeros.pop(); 
-        console.log("Se ha eliminado al pasajero: ", pasajero3.nombre);
-        const pasajero4 = listaPasajeros.pop(); 
-        console.log("Se ha eliminado al pasajero: ", pasajero4.nombre);
-        asientosDisponibles+=asientosDisponibles+4;
-    } else{
-        alert("Todavia existen asientos disponibles, ir a la opcion 1 del menu");
+// Opcion 4 - reporte de total de kilos en equipajes
+function reportePesoEquipaje() {
+    const kilosTotales = listaPasajeros.map((p) => p.pesoEquipaje).reduce((acum, kg) => acum + kg, 0);
+    const conRecargo = listaPasajeros.filter((p) => p.recargoPasaje > 0);
+    console.log("Total de peso de equipaje Kg: " , kilosTotales );
+    console.log("Pasajeros con recargo:" , conRecargo.length );
+    if (conRecargo.length > 0) {
+        conRecargo.forEach((p) =>console.log("-" , p.nombre , " | " , p.pesoEquipaje , " kg | Recargo: $" , p.recargoPasaje));
     }
-
 }
 
 // Opcion 5 - Modificar los datos de un pasajero de la lista
-function modificarDatosPasajero(posicion) {
-    if (posicion >= 0 && posicion < listaPasajeros.length) {
-        const pasajero = listaPasajeros[posicion];
+function modificarDatosPasajero(pasajero) {
+    if (pasajero) {
         alert("El pasajero a modificar es: " + pasajero.nombre);
-
         const datos = solicitarDatosPasajero();
+        const nombreDuplicado = listaPasajeros.some((p) => p.nombre === datos.nombre && p.id !== pasajero.id);
+        if (nombreDuplicado) {
+            alert("Error: Ya existe otro pasajero registrado con el nombre: " , datos.nombre);
+            return;
+        }
         pasajero.nombre = datos.nombre;
         pasajero.pesoEquipaje = datos.pesoEquipaje;
         pasajero.recargoPasaje = datos.recargoPasaje;
         pasajero.costoPasaje = datos.costoPasaje;
+        pasajero.descuento = 0;
+        pasajero.descuentoPasaje = 0;
 
         console.log("--- Registro de Pasajero Modificado ---");
+        console.log("ID:", pasajero.id, "| Posición en lista:", listaPasajeros.indexOf(pasajero));
         console.log("Nombre del pasajero:", pasajero.nombre);
-        console.log("Peso de equipaje:", pasajero.pesoEquipaje, "kg");
+        console.log("Peso de equipaje Kg:", pasajero.pesoEquipaje);
         console.log("Recargo por peso maleta: $", pasajero.recargoPasaje);
         console.log("Precio del pasaje: $", pasajero.costoPasaje);
         alert("Datos del pasajero modificados correctamente");
@@ -252,55 +244,51 @@ function modificarDatosPasajero(posicion) {
         console.log("El pasajero no está en lista");
         alert("No se puede modificar: el pasajero no está en lista");
     }
-    return posicion;
 }
 
 // Opcion 6 - Aplicar un descuento en el pasaje a un pasajero de la lista
-function aplicarDescuentoPasajero(posicion) {
-    if (posicion >= 0 && posicion < listaPasajeros.length) {
-        const seleccionPasajero = listaPasajeros[posicion];
+function aplicarDescuentoPasajero(seleccionPasajero) {
+    if (seleccionPasajero) {
         alert("El pasajero a aplicar descuento es: " + seleccionPasajero.nombre);
 
         let entradaPorcentaje = prompt("Ingrese porcentaje de descuento a aplicar (1 a 100):");
         let porcentaje = Number(entradaPorcentaje);
 
-        while (isNaN(porcentaje) || porcentaje <= 0 || porcentaje > 100) {
+        while (entradaPorcentaje === null || entradaPorcentaje.trim() === "" || isNaN(porcentaje) || porcentaje <= 0 || porcentaje > 100) {
             entradaPorcentaje = prompt("Error. Ingrese un valor entre 1 y 100:");
             porcentaje = Number(entradaPorcentaje);
         }
 
         seleccionPasajero.aplicarDescuento(porcentaje);
-
+        
         console.log("--- Registro de Pasajero con Descuento ---");
         console.log("Nombre del pasajero:", seleccionPasajero.nombre);
         console.log("Peso de equipaje:", seleccionPasajero.pesoEquipaje, "kg");
         console.log("Recargo por peso maleta: $", seleccionPasajero.recargoPasaje);
         console.log("Descuento aplicado (" + porcentaje + "%): -$", seleccionPasajero.descuentoPasaje);
         console.log("Precio final del pasaje: $", seleccionPasajero.costoPasaje);
-
-        alert("Descuento aplicado correctamente a " + seleccionPasajero.nombre);
+        alert("Descuento aplicado correctamente a " + seleccionPasajero.nombre + "\nNuevo precio: $" + seleccionPasajero.costoPasaje);
     } else {
         console.log("El pasajero no está en lista");
         alert("No se puede aplicar descuento: el pasajero no está en lista");
     }
-    return posicion;
 }
 
-function inicializarListaObjetos(){
-    let texto="";
-    const pasajero1 = new Pasajero("DAVID",20,0,150);
-    listaPasajeros.push(pasajero1);
-    const pasajero2 = new Pasajero("JUAN",25,50,200);
-    listaPasajeros.push(pasajero2);
-    const pasajero3 = new Pasajero("CECILIA",30,50,200);
-    listaPasajeros.push(pasajero3);
-    const pasajero4 = new Pasajero("MILAGROS",20,0,150);
-    listaPasajeros.push(pasajero4);
-    for (const pasajero of listaPasajeros) {
-        texto += "\nNombre: " + pasajero.nombre + " | Equipaje: " + pasajero.pesoEquipaje + " kg" + " | Costo: $" + pasajero.costoPasaje;
-    }
+// Opcion 7 - Reporte del vuelo: total de pasajeros, total de ventas y descuento total
+function reporteVuelo() {
+    const totalPasajeros = listaPasajeros.length;
+  
+    const totalVentas = listaPasajeros.reduce((acum, p) => acum + p.costoPasaje, 0);
+    const totalDescuentos = listaPasajeros.reduce((acum, p) => acum + p.descuentoPasaje, 0);
+    const pasajerosConDescuento = listaPasajeros.filter((p) => p.descuento > 0).length;
 
-    alert(texto);
+    console.log("--- REPORTE DEL VUELO AR1400 ---");
+    console.log("Total de pasajeros:", totalPasajeros);
+    console.log("Total de venta de pasajes: $", totalVentas);
+    console.log("Descuento total otorgado: $", totalDescuentos);
+    console.log("Pasajeros con descuento:", pasajerosConDescuento);
+
+    alert("REPORTE VUELO AR1400:" + "Total de pasajeros: " + totalPasajeros + "|Total de venta de pasajes: $" + totalVentas +"|Descuento total otorgado: $" + totalDescuentos);
 }
 
 
@@ -311,19 +299,17 @@ alert("=== SISTEMA INTERACTIVO DE RESERVA DE VUELOS ===");
 
 let opcion = "";
 let pos=-1;
-inicializarListaObjetos();
-alert("Se procedio a realizar la instanciacion de 4 objetos");
-asientosDisponibles= 8 - listaPasajeros.length;
-while (opcion !== "7") {
+while (opcion !== "8") {
   opcion = prompt(
     "MENÚ DE VUELOS\n\n" +
     "1 - Procesar Registrar pasajes\n" +
     "2 - Buscar un pasajero\n" +
     "3 - Impresion de pasajeros\n" +
-    "4 - Eliminar los pasajeros ingresados\n" +
+    "4 - Reporte de Total peso en equipajes\n" +
     "5 - Modificar datos de un pasajero\n" +
     "6 - Aplicar descuento a un pasajero\n" +
-    "7 - Fin\n\n" +
+    "7 - Reporte del vuelo AR1400\n" +
+    "8 - Fin\n\n" +
     "Seleccione una opción:"
   );
 
@@ -335,30 +321,33 @@ while (opcion !== "7") {
         break;
     case "2":
         alert("Buscar a un pasajero en el vuelo");
-        pos=buscarPasajero();
+        pasajeroEncontrado = buscarPasajero();
         break;
     case "3":
         alert("Imprimir lista de pasajeros");
         imprimirListadoFinalConsola();
         break;
     case "4":
-        alert("Eliminar los pasajeros que ingresaste");
-        borrarPasajeros();
-        imprimirListadoFinalConsola();
+        alert("Reporte Total en Kg en equipajes");
+        reportePesoEquipaje();
         break;
     case "5":
         alert("Modificar datos de un pasajero");
-        pos=buscarPasajero();
-        modificarDatosPasajero(pos);
+        pasajeroEncontrado = buscarPasajero();
+        modificarDatosPasajero(pasajeroEncontrado);
         break;
     case "6":
         alert("Aplicar un descuento a un pasajero");
-        pos=buscarPasajero();
-        aplicarDescuentoPasajero(pos);
+        pasajeroEncontrado = buscarPasajero();
+        aplicarDescuentoPasajero(pasajeroEncontrado);
         break;        
     case "7":
+        alert("Reporte del vuelo AR1400");
+        reporteVuelo(); 
+        break;  
+    case "8":
         alert("Fin del programa");
-        break;    
+        break;     
     default:
       alert("Opción no válida, intente de nuevo");
     }
